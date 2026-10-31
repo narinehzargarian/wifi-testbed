@@ -10,11 +10,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Install the kernel radio driver and network tools
+      - name: Install network tools
         run: |
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            "linux-modules-extra-$(uname -r)" hostapd wpasupplicant iw dnsmasq-base \
+            hostapd wpasupplicant iw dnsmasq-base \
             busybox-static iperf3 dnsutils traceroute iproute2 python3-pytest
       - name: Run the test plan
         run: sudo LAB_LOG_DIR=lab-logs python3 -m pytest tests -v --junitxml=results.xml
