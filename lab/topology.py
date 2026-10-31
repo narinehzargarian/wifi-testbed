@@ -14,6 +14,7 @@ import pathlib
 import re
 import shutil
 import signal
+import statistics
 import subprocess
 import tempfile
 import time
@@ -29,6 +30,7 @@ SERVER_IP = "10.30.0.10"
 SERVER_NAME = "files.lab.test"
 
 LEASE_SCRIPT = pathlib.Path(__file__).with_name("udhcpc-lease.sh")
+UDP_PROBE = pathlib.Path(__file__).with_name("udp_probe.py")
 
 
 def wait_for(condition, timeout, interval=0.25):
@@ -223,9 +225,24 @@ class Lab:
         out = self.run(STA, f"traceroute -n -q 1 -w 1 {target}", check=False).stdout
         return re.findall(r"^\s*\d+\s+(\d+\.\d+\.\d+\.\d+)", out, flags=re.M)
 
-    def iperf_udp(self, mbits=5, seconds=5):
-        out = self.run(STA, f"iperf3 -c {SERVER_IP} -u -b {mbits}M -t {seconds} --json", timeout=seconds + 20).stdout
-        return json.loads(out)["end"]["sum"]
+    def udp_loss(self, packets_per_second=625, seconds=3):
+        """Sends numbered 1000-byte packets (625 per second is 5 Mbit/s). Returns percent lost."""
+        probe = f"python3 {UDP_PROBE}"
+        receiver = subprocess.Popen(
+            f"exec ip netns exec {SRV} {probe} recv", shell=True, stdout=subprocess.PIPE, text=True
+        )
+        time.sleep(0.3)
+        sent = json.loads(
+            self.run(STA, f"{probe} send --host {SERVER_IP} --pps {packets_per_second} --seconds {seconds}",
+                     timeout=seconds + 10).stdout
+        )["sent"]
+        result = json.loads(receiver.communicate(timeout=seconds + 15)[0])
+        print(f"udp probe: sent {sent}, received {result['received']}, longest gap {result['longest_gap']}")
+        return 100.0 * (sent - result["received"]) / sent
+
+    def median_udp_loss(self, runs=3):
+        """One stall on the path can skew a single run, so take the median of several."""
+        return statistics.median(self.udp_loss(seconds=2) for _ in range(runs))
 
     def iperf_tcp(self, seconds=4):
         out = self.run(STA, f"iperf3 -c {SERVER_IP} -t {seconds} --json", timeout=seconds + 20).stdout

@@ -26,15 +26,14 @@ def test_route_03_forwarding_disabled_on_router_stops_traffic(online):
 
 
 def test_perf_01_clean_network_baseline(online):
-    udp = online.iperf_udp(mbits=5)
-    assert udp["lost_percent"] < 2
+    assert online.median_udp_loss() < 2
     tcp = online.iperf_tcp()
     assert tcp["bits_per_second"] > 1_000_000
 
 
 def test_perf_02_measured_udp_loss_matches_injected_loss(online):
     online.impair("loss 20%")
-    assert online.iperf_udp(mbits=5)["lost_percent"] == pytest.approx(20, abs=5)
+    assert online.median_udp_loss() == pytest.approx(20, abs=5)
 
 
 def test_perf_03_measured_latency_matches_injected_delay(online):

@@ -26,9 +26,9 @@ def main():
             if netem:
                 lab.impair(netem)
             _, rtt = lab.ping(SERVER_IP, count=10)
-            udp = lab.iperf_udp(mbits=5)
+            udp_loss = lab.median_udp_loss()
             tcp = lab.iperf_tcp()
-            print(f"{name:<14}{rtt or 0:>9.1f}{udp['lost_percent']:>12.1f}{tcp['bits_per_second'] / 1e6:>12.1f}")
+            print(f"{name:<14}{rtt or 0:>9.1f}{udp_loss:>12.1f}{tcp['bits_per_second'] / 1e6:>12.1f}")
         lab.run("wl-core", "tc qdisc del dev core-srv root")
         print(f"roam to second access point: {measure_roam(lab):.1f} s")
     finally:
