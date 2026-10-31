@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -16,6 +17,8 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
             hostapd wpasupplicant iw dnsmasq-base \
             busybox-static iperf3 dnsutils traceroute iproute2 python3-pytest
+      - name: Measure the network
+        run: sudo python3 -m lab.measure
       - name: Run the test plan
         run: sudo LAB_LOG_DIR=lab-logs python3 -m pytest tests -v --junitxml=results.xml
       - name: Upload results
