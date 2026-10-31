@@ -1,0 +1,5 @@
+__pycache__/
+.pytest_cache/
+lab-logs/
+results.xml
+.DS_Store
